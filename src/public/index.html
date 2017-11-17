@@ -9,10 +9,77 @@
 <script>THREEx.ArToolkitContext.baseURL = '../'</script>
 
 <body style='margin : 0px; overflow: hidden; font-family: Monospace;'><div style='position: absolute; top: 10px; width:100%; text-align: center; z-index: 1;'>
-	<a href="https://github.com/jeromeetienne/AR.js/" target="_blank">AR.js</a> - three.js mobile performance
-	<br/>
-	Contact me any time at <a href='https://twitter.com/jerome_etienne' target='_blank'>@jerome_etienne</a>
+	 <div id="camera-selection">
+		 <select id="audioSource"></select>
+		 <select id="videoSource"></select>
+	 </div>
 </div><script>
+
+    var videoSelect = document.querySelector('select#videoSource');
+    var selectors = [ videoSelect];
+
+
+    function gotDevices(deviceInfos) {
+        // Handles being called several times to update labels. Preserve values.
+        var values = selectors.map(function(select) {
+            return select.value;
+        });
+        selectors.forEach(function(select) {
+            while (select.firstChild) {
+                select.removeChild(select.firstChild);
+            }
+        });
+        for (var i = 0; i !== deviceInfos.length; ++i) {
+            var deviceInfo = deviceInfos[i];
+            var option = document.createElement('option');
+            option.value = deviceInfo.deviceId;
+            if (deviceInfo.kind === 'videoinput') {
+                option.text = deviceInfo.label || 'camera ' + (videoSelect.length + 1);
+                videoSelect.appendChild(option);
+            } else {
+                console.log('Some other kind of source/device: ', deviceInfo);
+            }
+        }
+        selectors.forEach(function(select, selectorIndex) {
+            if (Array.prototype.slice.call(select.childNodes).some(function(n) {
+                    return n.value === values[selectorIndex];
+                })) {
+                select.value = values[selectorIndex];
+            }
+        });
+    }
+
+    navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+
+    
+
+    function gotStream(stream) {
+        window.stream = stream; // make stream available to console
+        // Refresh button list in case labels have become available
+        return navigator.mediaDevices.enumerateDevices();
+    }
+
+    function start() {
+        if (window.stream) {
+            window.stream.getTracks().forEach(function(track) {
+                track.stop();
+            });
+        }
+        var videoSource = videoSelect.value;
+        var constraints = {
+            video: {deviceId: videoSource ? {exact: videoSource} : undefined}
+        };
+        navigator.mediaDevices.getUserMedia(constraints).
+        then(gotStream).then(gotDevices).catch(handleError);
+    }
+
+    videoSelect.onchange = start;
+
+    start();
+
+    function handleError(error) {
+        console.log('navigator.getUserMedia error: ', error);
+    }
 	//////////////////////////////////////////////////////////////////////////////////
 	//		Init
 	//////////////////////////////////////////////////////////////////////////////////
@@ -48,6 +115,7 @@
 	////////////////////////////////////////////////////////////////////////////////
 	//          handle arToolkitSource
 	////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////
 
 	var arToolkitSource = new THREEx.ArToolkitSource({
 		// to read from the webcam 
@@ -61,6 +129,7 @@
 		// sourceType : 'video',
 		// sourceUrl : THREEx.ArToolkitContext.baseURL + '../data/videos/headtracking.mp4',		
 	})
+	console.log(arToolkitSource);
 
 	arToolkitSource.init(function onReady(){
 		onResize()
@@ -163,10 +232,11 @@
 		stats.update();
 	})
     let scanner = new Instascan.Scanner({video: document.querySelector('video')});
-    Instascan.Camera.getCameras().then(function (cameras) {
-        if (cameras.length > 0) {
-            console.log('found camera, starting', cameras);
-            scanner.start(cameras[1]);
+    Instascan.Camera.getCameras().then(function (instacameras) {
+        console.log(instacameras);
+        if (instacameras.length > 0) {
+            console.log('found camera, starting', instacameras);
+            scanner.start(instacameras[1]);
         } else {
             console.error('No cameras found.');
         }
