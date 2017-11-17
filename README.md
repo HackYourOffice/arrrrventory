@@ -1,3 +1,3 @@
 # arrrrventory
 
-to run: npm src/index.js
+to run: node src/index.js
