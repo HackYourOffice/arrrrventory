@@ -1,0 +1,6 @@
+{
+  "inventory_url" :"https://inventory.example.com/api/v1" ,
+  "inventory_token": "YOUR_TOKEN"
+}
+
+

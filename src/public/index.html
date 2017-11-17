@@ -21,6 +21,7 @@
 		// antialias	: true,
 		alpha: true
 	});
+	var lastVisibleStartedAt = null;
 	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
 	// renderer.setPixelRatio( 1/2 );
 	renderer.setSize( window.innerWidth, window.innerHeight );
@@ -161,6 +162,24 @@
 	onRenderFcts.push(function(){
 		renderer.render( scene, camera );
 		stats.update();
+	})
+
+
+    onRenderFcts.push(function(){
+		
+        if (smoothedControls._visibleStartedAt && lastVisibleStartedAt !== smoothedControls._visibleStartedAt ){
+
+            fetch('/api').then((ret) => {
+                console.log(ret)
+            }).catch((err) => {
+                console.log(err)
+            });
+            lastVisibleStartedAt = smoothedControls._visibleStartedAt;
+            console.log('acquired Target');            
+		}
+        
+       
+        
 	})
 
 	// run the rendering loop
