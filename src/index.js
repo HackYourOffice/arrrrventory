@@ -6,8 +6,8 @@ const app = express()
 app.use(express.static('src/public'));
 
 
-app.get('/api', (req, res) => {
-    request.get(config.inventory_url + '/hardware/5', {
+app.get('/api/:id', (req, res) => {
+    request.get(config.inventory_url + '/hardware/' + req.params.id, {
             method: 'GET',
             auth: {
                 'bearer': config.inventory_token,

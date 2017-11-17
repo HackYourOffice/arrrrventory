@@ -3,6 +3,7 @@
 <!-- three.js library -->
 <script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/88/three.min.js'></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stats.js/r16/Stats.min.js"></script>
+<script type="text/javascript" src="lib/instascan.min.js"></script>
 <!-- ar.js -->
 <script src="lib/ar.js"></script>
 <script>THREEx.ArToolkitContext.baseURL = '../'</script>
@@ -133,25 +134,23 @@
 	var arWorldRoot = smoothedRoot
 
 	// add a torus knot	
-	var geometry	= new THREE.CubeGeometry(1,1,1);
+	var geometry	= new THREE.PlaneGeometry(1,1);
+
 	var material	= new THREE.MeshNormalMaterial({
 		transparent : true,
 		opacity: 0.5,
 		side: THREE.DoubleSide
 	}); 
 	var mesh	= new THREE.Mesh( geometry, material );
-	mesh.position.y	= geometry.parameters.height/2
+    mesh.rotation.x += Math.PI/2;
 	arWorldRoot.add( mesh );
+
+
+    var loader = new THREE.FontLoader();
+
+    
 	
-	var geometry	= new THREE.TorusKnotGeometry(0.3,0.1,64,16);
-	var material	= new THREE.MeshNormalMaterial(); 
-	var mesh	= new THREE.Mesh( geometry, material );
-	mesh.position.y	= 0.5
-	arWorldRoot.add( mesh );
 	
-	onRenderFcts.push(function(){
-		mesh.rotation.x += 0.1
-	})
 
 	//////////////////////////////////////////////////////////////////////////////////
 	//		render the whole thing on the page
@@ -163,24 +162,68 @@
 		renderer.render( scene, camera );
 		stats.update();
 	})
+    let scanner = new Instascan.Scanner({video: document.querySelector('video')});
+    Instascan.Camera.getCameras().then(function (cameras) {
+        if (cameras.length > 0) {
+            console.log('found camera, starting', cameras);
+            scanner.start(cameras[1]);
+        } else {
+            console.error('No cameras found.');
+        }
+    }).catch(function (e) {
+        console.error(e);
+    });
+
+    function create_3d_font(id) {
+        fetch('/api/' + id).then((ret) => {
+            ret.json().then((o) => {
+                console.log(o);
+                loader.load('data/josefine.json', function (font) {
+
+                    var font_opts = {
+                        font: font,
+                        size: 0.1,
+                        height: 0.01,
+                        curveSegments: 12,
+                        bevelEnabled: true,
+                        bevelThickness: 0.001,
+                        bevelSize: 0.001,
+                        bevelSegments: 5
+                    };
+
+                    var text = `id: ${o.id}\nmodel: ${o.model.name}`;
+
+                    var geometry = new THREE.TextGeometry(text, font_opts);
+                    var mesh = new THREE.Mesh(geometry, material);
+                    mesh.rotation.x -= Math.PI / 2;
+                    mesh.position.x -= 0.5;
+                    mesh.position.z -= (0.5 - font_opts.size);
+                    arWorldRoot.add(mesh);
+                });
+            })
+        });
+
+    }
+    
+    onRenderFcts.push(function () {
+
+        if (smoothedControls._visibleStartedAt && lastVisibleStartedAt !== smoothedControls._visibleStartedAt) {
+
+            var qr_result = scanner.scan();
+            if (qr_result) {
+                create_3d_font(qr_result.content);
+                lastVisibleStartedAt = smoothedControls._visibleStartedAt;
+            }else {
+                console.log('no qr code found');
+            }  
+            
+
+        } 
 
 
-    onRenderFcts.push(function(){
-		
-        if (smoothedControls._visibleStartedAt && lastVisibleStartedAt !== smoothedControls._visibleStartedAt ){
+    
 
-            fetch('/api').then((ret) => {
-                console.log(ret)
-            }).catch((err) => {
-                console.log(err)
-            });
-            lastVisibleStartedAt = smoothedControls._visibleStartedAt;
-            console.log('acquired Target');            
-		}
-        
-       
-        
-	})
+    })
 
 	// run the rendering loop
 	var lastTimeMsec= null
